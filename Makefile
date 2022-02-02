@@ -86,7 +86,11 @@ else
 ARCH_CFLAGS += -Os -Werror
 endif
 
-all: $(PROG).hex $(PROG).bin
+.config:
+	$(warning No '.config' detected: generating defconfig)
+	@$(MAKE) -C $(srctree) defconfig
+
+all: $(PROG).hex $(PROG).bin .config
 	@echo "Build for the $(PLATFORM)!"
 	@$(PYTHON) $(srctree)/tools/make/versionTemplate.py --crazyflie-base $(srctree) --print-version
 	@$(PYTHON) $(srctree)/tools/make/size.py $(SIZE) $(PROG).elf $(MEM_SIZE_FLASH_K) $(MEM_SIZE_RAM_K) $(MEM_SIZE_CCM_K)
@@ -95,9 +99,6 @@ tag_config:
 	$(MAKE) tag_defconfig
 
 include tools/make/targets.mk
-
-check_config:
-	[ -e .config ] || $(MAKE) -C $(srctree) defconfig
 
 size:
 	@$(PYTHON) $(srctree)/tools/make/size.py $(SIZE) $(PROG).elf $(MEM_SIZE_FLASH_K) $(MEM_SIZE_RAM_K) $(MEM_SIZE_CCM_K)
