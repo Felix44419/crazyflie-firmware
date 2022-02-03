@@ -27,6 +27,7 @@
 
 #include "app.h"
 #include "app_channel.h"
+#include "../../../src/drivers/interface/led.h"
 
 #include "debug.h"
 
@@ -34,8 +35,6 @@
 
 struct testPacketRX {
   float x;
-  float y;
-  float z;
 } __attribute__((packed));
 
 struct testPacketTX {
@@ -52,12 +51,12 @@ void appMain()
   while(1) {
     if (appchannelReceiveDataPacket(&rxPacket, sizeof(rxPacket), APPCHANNEL_WAIT_FOREVER)) {
 
-      DEBUG_PRINT("App channel received x: %f, y: %f, z: %f\n", (double)rxPacket.x, (double)rxPacket.y, (double)rxPacket.z);
+      txPacket.sum =1;
 
-      txPacket.sum = rxPacket.x;
-      txPacket.sum += rxPacket.y;
-      txPacket.sum += rxPacket.z;
-
+      for (int i=0; i<100;i++){
+          ledSet(LED_RED_L, 1);
+          ledSet(LED_GREEN_L, 1);
+      }
       appchannelSendDataPacketBlock(&txPacket, sizeof(txPacket));
     }
   }
