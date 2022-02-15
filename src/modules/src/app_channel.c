@@ -38,8 +38,6 @@
 #include "../../hal/interface/ledseq.h"
 #include "missionController.h"
 
-#define DEBUG_MODULE "HELLOWORLD"
-
 static SemaphoreHandle_t sendMutex;
 
 static xQueueHandle  rxQueue;
@@ -148,8 +146,9 @@ void appMain()
 
       txPacket.replyCode = 00;
       // Identify
-      if (rxPacket.commandTag == 11 || rxPacket.commandTag == 12){   
-        
+      if (rxPacket.commandTag == 1){   
+        ledseqEnable(true);
+
         ledseqRun(&seq_alive);
         vTaskDelay(M2T(100));
         ledseqStop(&seq_alive);
@@ -158,6 +157,7 @@ void appMain()
         vTaskDelay(M2T(100));
         ledseqStop(&seq_linkDown);
 
+        ledseqEnable(false);
         txPacket.replyCode = 420;
       }
       // Start mission
@@ -172,7 +172,7 @@ void appMain()
         ledseqStop(&seq_linkDown);
         
         // We start the mission
-        changeState(unlocked);
+        //changeState(unlocked);
 
         txPacket.replyCode = 9000;
       }

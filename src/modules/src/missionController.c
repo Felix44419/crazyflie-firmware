@@ -55,16 +55,17 @@ static void setHoverSetpoint(setpoint_t *setpoint, float vx, float vy, float z, 
   setpoint->velocity_body = true;
 }
 
-static void changeState(State newState) {
+void changeState(State newState) {
   state = newState;
 }
+
 static State state = idle;
 
 static const uint16_t unlockThLow = 100;
 static const uint16_t unlockThHigh = 300;
 static const uint16_t stoppedTh = 500;
 
-static const float velMax = 1.0f;
+static const float velMax = 0.3f;
 static const uint16_t radius = 300;
 
 static const float height_sp = 0.2f;

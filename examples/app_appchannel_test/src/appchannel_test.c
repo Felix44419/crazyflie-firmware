@@ -40,7 +40,7 @@ struct testPacketRX {
 struct testPacketTX {
   float sum;
 } __attribute__((packed));
-
+/*
 void appMain()
 {
   DEBUG_PRINT("Waiting for activation ...\n");
@@ -61,3 +61,4 @@ void appMain()
     }
   }
 }
+*/

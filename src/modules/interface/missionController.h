@@ -25,7 +25,7 @@
  * push.c - App layer application of the onboard push demo. The crazyflie 
  * has to have the multiranger and the flowdeck version 2.
  */
-#pragma once
+//#pragma once
 
 #include <string.h>
 #include <stdint.h>
