@@ -164,6 +164,19 @@ ledseqContext_t seq_testPassed = {
   .led = LINK_LED,
 };
 
+ledseqStep_t seq_missionStart_def[] = {
+  { true, LEDSEQ_WAITMS(100)},
+  {false, LEDSEQ_WAITMS(100)},
+  { true, LEDSEQ_WAITMS(100)},
+  {false, LEDSEQ_WAITMS(100)},
+  {false, LEDSEQ_STOP},
+};
+
+ledseqContext_t seq_missionStart = {
+  .sequence = seq_missionStart_def,
+  .led = CHG_LED,
+};
+
 ledseqContext_t seq_testFailed = {
   .sequence = seq_testPassed_def,
   .led = SYS_LED,
