@@ -38,4 +38,8 @@ typedef enum {
     stopping
 } State;
 
+extern State state;
+
+extern void changeState(State newState){}
+
 #define DEBUG_MODULE "PUSH"

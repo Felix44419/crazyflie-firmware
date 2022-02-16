@@ -59,7 +59,7 @@ void changeState(State newState) {
   state = newState;
 }
 
-static State state = idle;
+State state = idle;
 
 static const uint16_t unlockThLow = 100;
 static const uint16_t unlockThHigh = 300;

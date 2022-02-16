@@ -144,41 +144,33 @@ void appMain()
   while(1) {
     if (appchannelReceiveDataPacket(&rxPacket, sizeof(rxPacket), APPCHANNEL_WAIT_FOREVER)) {
 
+      ledseqEnable(true);
       txPacket.replyCode = 00;
       // Identify
       if (rxPacket.commandTag == 1){   
-        ledseqEnable(true);
 
-        ledseqRun(&seq_alive);
-        vTaskDelay(M2T(100));
-        ledseqStop(&seq_alive);
-        vTaskDelay(M2T(100));
-        ledseqRun(&seq_linkDown);
-        vTaskDelay(M2T(100));
-        ledseqStop(&seq_linkDown);
+        
 
-        ledseqEnable(false);
+        ledseqRun(&seq_testPassed);
+        vTaskDelay(M2T(1000));
+
+        
         txPacket.replyCode = 420;
       }
       // Start mission
       if (rxPacket.commandTag == 2){
 
-        ledseqRun(&seq_linkUp);
-        vTaskDelay(M2T(100));
-        ledseqStop(&seq_linkUp);
-        vTaskDelay(M2T(100));
-        ledseqRun(&seq_linkDown);
-        vTaskDelay(M2T(100));
-        ledseqStop(&seq_linkDown);
+        ledseqRun(&seq_missionStart);
+        vTaskDelay(M2T(450));
         
         // We start the mission
-        //changeState(unlocked);
+        changeState(unlocked);
 
         txPacket.replyCode = 9000;
       }
-      appchannelSendDataPacket(&txPacket, sizeof(txPacket));
+      ledseqEnable(false);
       
-      rxPacket.commandTag= 0;
+      appchannelSendDataPacket(&txPacket, sizeof(txPacket));
     }
   }
 }
