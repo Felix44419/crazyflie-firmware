@@ -171,9 +171,27 @@ ledseqStep_t seq_missionStart_def[] = {
   {false, LEDSEQ_WAITMS(100)},
   {false, LEDSEQ_STOP},
 };
-
+ledseqStep_t seq_missionStop_def[] = {
+  { true, LEDSEQ_WAITMS(100)},
+  {false, LEDSEQ_WAITMS(100)},
+  { true, LEDSEQ_WAITMS(100)},
+  {false, LEDSEQ_WAITMS(100)},
+    { true, LEDSEQ_WAITMS(100)},
+  {false, LEDSEQ_WAITMS(100)},
+  { true, LEDSEQ_WAITMS(100)},
+  {false, LEDSEQ_WAITMS(100)},
+    { true, LEDSEQ_WAITMS(100)},
+  {false, LEDSEQ_WAITMS(100)},
+  { true, LEDSEQ_WAITMS(100)},
+  {false, LEDSEQ_WAITMS(100)},
+  {false, LEDSEQ_STOP},
+};
 ledseqContext_t seq_missionStart = {
   .sequence = seq_missionStart_def,
+  .led = CHG_LED,
+};
+ledseqContext_t seq_missionStop = {
+  .sequence = seq_missionStop_def,
   .led = CHG_LED,
 };
 
@@ -221,6 +239,8 @@ void ledseqInit() {
   ledseqRegisterSequence(&seq_alive);
   ledseqRegisterSequence(&seq_linkUp);
   ledseqRegisterSequence(&seq_linkDown);
+  ledseqRegisterSequence(&seq_missionStart);
+  ledseqRegisterSequence(&seq_missionStop);
 
   //Initialise the sequences state
   for(int i=0; i<LED_NUM; i++) {

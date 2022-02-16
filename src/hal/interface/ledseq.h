@@ -139,5 +139,6 @@ extern ledseqContext_t seq_charging;
 extern ledseqContext_t seq_testPassed;
 extern ledseqContext_t seq_testFailed;
 extern ledseqContext_t seq_missionStart;
+extern ledseqContext_t seq_missionStop;
 
 #endif
