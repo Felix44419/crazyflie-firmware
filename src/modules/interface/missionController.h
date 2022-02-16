@@ -42,4 +42,6 @@ extern State state;
 
 extern void changeState(State newState){}
 
+void missionControllerInit();
+
 #define DEBUG_MODULE "PUSH"

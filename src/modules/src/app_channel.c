@@ -149,12 +149,9 @@ void appMain()
       // Identify
       if (rxPacket.commandTag == 1){   
 
-        
-
         ledseqRun(&seq_testPassed);
         vTaskDelay(M2T(1000));
 
-        
         txPacket.replyCode = 420;
       }
       // Start mission
@@ -168,9 +165,27 @@ void appMain()
 
         txPacket.replyCode = 9000;
       }
+      // Stop mission
+      if (rxPacket.commandTag == 3){
+
+        ledseqRun(&seq_missionStop);
+        vTaskDelay(M2T(1250));
+        
+        // We stop the mission
+        changeState(stopping);
+
+        txPacket.replyCode = 9001;
+      }
       ledseqEnable(false);
-      
+
       appchannelSendDataPacket(&txPacket, sizeof(txPacket));
     }
   }
 }
+
+#ifndef TEST
+int main(void)
+{
+  return AppMain();
+}
+#endif // TEST
