@@ -134,6 +134,44 @@ static int sendDataPacket(void* data, size_t length, const bool doBlock)
   return result;
 }
 
+int commandHandler(int commandTag){
+      ledseqEnable(true);
+      int replyCode;
+      // Identify
+      if (commandTag == 1){   
+
+        ledseqRun(&seq_testPassed);
+        vTaskDelay(M2T(1000));
+
+        replyCode = 420;
+      }
+      // Start mission
+      if (commandTag == 2){
+
+        ledseqRun(&seq_missionStart);
+        vTaskDelay(M2T(450));
+        
+        // We start the mission
+        changeState(unlocked);
+
+        replyCode = 9000;
+      }
+      // Stop mission
+      if (commandTag == 3){
+
+        ledseqRun(&seq_missionStop);
+        vTaskDelay(M2T(1250));
+        
+        // We stop the mission
+        changeState(stopping);
+
+        replyCode = 9001;
+      }
+      ledseqEnable(false);
+      return replyCode;
+
+}
+
 void appMain()
 {
   DEBUG_PRINT("Waiting for activation ...\n");
@@ -143,41 +181,7 @@ void appMain()
 
   while(1) {
     if (appchannelReceiveDataPacket(&rxPacket, sizeof(rxPacket), APPCHANNEL_WAIT_FOREVER)) {
-
-      ledseqEnable(true);
-      txPacket.replyCode = 00;
-      // Identify
-      if (rxPacket.commandTag == 1){   
-
-        ledseqRun(&seq_testPassed);
-        vTaskDelay(M2T(1000));
-
-        txPacket.replyCode = 420;
-      }
-      // Start mission
-      if (rxPacket.commandTag == 2){
-
-        ledseqRun(&seq_missionStart);
-        vTaskDelay(M2T(450));
-        
-        // We start the mission
-        changeState(unlocked);
-
-        txPacket.replyCode = 9000;
-      }
-      // Stop mission
-      if (rxPacket.commandTag == 3){
-
-        ledseqRun(&seq_missionStop);
-        vTaskDelay(M2T(1250));
-        
-        // We stop the mission
-        changeState(stopping);
-
-        txPacket.replyCode = 9001;
-      }
-      ledseqEnable(false);
-
+      txPacket.replyCode = commandHandler(rxPacket.commandTag);
       appchannelSendDataPacket(&txPacket, sizeof(txPacket));
     }
   }
@@ -186,6 +190,6 @@ void appMain()
 #ifndef TEST
 int main(void)
 {
-  return AppMain();
+  appMain();
 }
 #endif // TEST

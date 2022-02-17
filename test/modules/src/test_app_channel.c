@@ -26,7 +26,7 @@ void testAppchannelShouldReceiveIdentifyReturnReply() {
     testPacketRX.commandTag=1;
     mock_app_channel_Init();
     
-    appchannelReceiveDataPacket_CMockExpectAndReturn(145,&testPacketRX, sizeof(testPacketRX), APPCHANNEL_WAIT_FOREVER,181);
+    commandHandler_Expect(testPacketRX.commandTag);
     
   //Test if the identify returns the reply code 420
   TEST_ASSERT_EQUAL(420, testPacketTX.replyCode);
