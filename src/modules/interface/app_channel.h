@@ -30,8 +30,17 @@
 
 #include "crtp.h"
 
+
 #define APPCHANNEL_WAIT_FOREVER (-1)
 #define APPCHANNEL_MTU (31)
+
+typedef enum {
+    idle,
+    takeOff,
+    exploring,
+    emergencyStop,
+    returnToBase
+} FlightState;
 
 /**
  * Send an app-channel packet - deprecated, use appchannelSendDataPacketBlock() instead
@@ -137,7 +146,7 @@ size_t appchannelReceiveDataPacket(void* buffer, size_t max_length, int timeout_
  */
 bool appchannelHasOverflowOccured();
 
-
+int commandHandler(int commandTag);
 // Function declared bellow are private to the Crazyflie firmware and
 // should not be called from an app
 
@@ -150,3 +159,5 @@ void appchannelInit();
  *
  */
 void appchannelIncomingPacket(CRTPPacket *p);
+
+void AppMain();
