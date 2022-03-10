@@ -154,18 +154,14 @@ static int sendDataPacket(void* data, size_t length, const bool doBlock)
   return result;
 }
 
-<<<<<<< HEAD
 /*
 *  The command handler receives a tag from the server
 *  This method updates our flight state accordingly or blinks the LEDs
 */
-=======
->>>>>>> d3b25a2d0bb66a7ed04d56923419dbb0a7d7a532
 int commandHandler(int commandTag){
       ledseqEnable(true);
       int replyCode;
       // Identify
-<<<<<<< HEAD
       if (commandTag == 01){   
 
         ledseqRun(&seq_testPassed);
@@ -175,17 +171,6 @@ int commandHandler(int commandTag){
       }
       // Start mission
       if (commandTag == 02){
-=======
-      if (commandTag == 1){   
-
-        ledseqRun(&seq_testPassed);
-        vTaskDelay(M2T(1000));
-
-        replyCode = 420;
-      }
-      // Start mission
-      if (commandTag == 2){
->>>>>>> d3b25a2d0bb66a7ed04d56923419dbb0a7d7a532
 
         ledseqRun(&seq_missionStart);
         vTaskDelay(M2T(450));
@@ -196,11 +181,7 @@ int commandHandler(int commandTag){
         replyCode = 9000;
       }
       // Stop mission
-<<<<<<< HEAD
       if (commandTag == 03){
-=======
-      if (commandTag == 3){
->>>>>>> d3b25a2d0bb66a7ed04d56923419dbb0a7d7a532
 
         ledseqRun(&seq_missionStop);
         vTaskDelay(M2T(1250));
@@ -209,7 +190,6 @@ int commandHandler(int commandTag){
         state = emergencyStop;
 
         replyCode = 9001;
-<<<<<<< HEAD
       }
             // Drone status
       if (commandTag == 04){
@@ -336,25 +316,6 @@ void flightControl(){
       goForward();
     if (front_o!=0){
       obstacleDodge();
-=======
-      }
-      ledseqEnable(false);
-      return replyCode;
-
-}
-
-void appMain()
-{
-  DEBUG_PRINT("Waiting for activation ...\n");
-
-  struct packetRX rxPacket;
-  struct packetTX txPacket;
-
-  while(1) {
-    if (appchannelReceiveDataPacket(&rxPacket, sizeof(rxPacket), APPCHANNEL_WAIT_FOREVER)) {
-      txPacket.replyCode = commandHandler(rxPacket.commandTag);
-      appchannelSendDataPacket(&txPacket, sizeof(txPacket));
->>>>>>> d3b25a2d0bb66a7ed04d56923419dbb0a7d7a532
     }
     goForward();
   }
@@ -365,7 +326,6 @@ void appMain()
 
 void appMain()
 {
-<<<<<<< HEAD
   DEBUG_PRINT("Waiting for activation ...\n");
 
   struct packetRX rxPacket;
@@ -382,8 +342,3 @@ void appMain()
     }
   }
 }
-=======
-  appMain();
-}
-#endif // TEST
->>>>>>> d3b25a2d0bb66a7ed04d56923419dbb0a7d7a532
