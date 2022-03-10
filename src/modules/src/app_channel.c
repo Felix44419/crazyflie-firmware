@@ -34,6 +34,7 @@
 #include "queue.h"
 
 #include "platformservice.h"
+#include <stdlib.h>
 #include "debug.h"
 #include "log.h"
 #include "param.h"
@@ -51,18 +52,15 @@ static int sendDataPacket(void* data, size_t length, const bool doBlock);
 FlightState state;
 static setpoint_t setpoint;
 
-static const float velMax = 0.3f;
 static const uint16_t radius = 300;
 
-static const float height_sp = 0.2f;
+static float height_sp = 0.3f;
 
 #define MAX(a,b) ((a>b)?a:b)
 #define MIN(a,b) ((a<b)?a:b)
 
-
 /*
   Communication methods using the CRTP
-
 */
 
 struct packetRX {
@@ -163,10 +161,10 @@ int commandHandler(int commandTag){
       int replyCode;
       // Identify
       if (commandTag == 01){   
-
         ledseqRun(&seq_testPassed);
         vTaskDelay(M2T(1000));
         ledseqStop(&seq_testPassed);
+        state = idle;
         replyCode = 420;
       }
       // Start mission
@@ -177,7 +175,6 @@ int commandHandler(int commandTag){
         ledseqStop(&seq_missionStart);
         // We start the mission
         state = takeOff;
-
         replyCode = 9000;
       }
       // Stop mission
@@ -236,91 +233,78 @@ static void setHoverSetpoint(setpoint_t *setpoint, float vx, float vy, float z, 
   setpoint->velocity_body = true;
 }
 
-static bool takeOffDrone(){
-  if((setpoint.position.z-2.0f)<0.01f) return false;
-  setHoverSetpoint(&setpoint, 0, 0, 2.0, 0);
+static void takeOffDrone(){
+  setHoverSetpoint(&setpoint, 0, 0, 0.3f, 0);
   commanderSetSetpoint(&setpoint, 3);
+  vTaskDelay(M2T(100));
   state = exploring;
-  return true;
 }  
 
-static bool land(){
-  if((setpoint.position.z<0.01f) return false;
-  setHoverSetpoint(&setpoint, 0, 0, 0, 0);
-  commanderSetSetpoint(&setpoint, 3);
-  return true;
+static void land(){
+  // To ensure the landing is smooth, we calculate a factor of 5% the usual height
+  float landingFactor = height_sp * 0.98f;
+  while(height_sp>0.01f) {
+    height_sp = height_sp - landingFactor;
+    setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
+    commanderSetSetpoint(&setpoint, 3);
+  }
+  state = idle;
 }
 
 static void goForward(){
-  setHoverSetpoint(&setpoint, 1, 0, 0, 0);
+  setHoverSetpoint(&setpoint, 30.0f, 0, 0, 0);
   commanderSetSetpoint(&setpoint, 3);
 }
 
 static void obstacleDodge(){
-  setHoverSetpoint(&setpoint, 0, 0, setpoint.position.z, (rand()%60) + 30);
+  setHoverSetpoint(&setpoint, 0, 0, 0, (rand() % 60) + 30);
   commanderSetSetpoint(&setpoint,3);
-  vTaskDelay(M2T((rand()%1000)+1000));
+  vTaskDelay(M2T((rand()%1000)+500));
 }
 
 // TODO get a time reading of the total delay to run this method.
 // The delay shall be used to measure how long we can wait for a packet 
 void flightControl(){
-
-  logVarId_t idUp = logGetVarId("range", "up");
-  logVarId_t idLeft = logGetVarId("range", "left");
-  logVarId_t idRight = logGetVarId("range", "right");
-  logVarId_t idFront = logGetVarId("range", "front");
-  logVarId_t idBack = logGetVarId("range", "back");
-  
-  //paramVarId_t idPositioningDeck = paramGetVarId("deck", "bcFlow2");
-  //paramVarId_t idMultiranger = paramGetVarId("deck", "bcMultiranger");
-
-  float factor = velMax/radius;
-
-  //DEBUG_PRINT("%i", idUp);
-  
   vTaskDelay(M2T(10));
-  //DEBUG_PRINT(".");
+  //logVarId_t idUp = logGetVarId("range", "up");
+  //logVarId_t idLeft = logGetVarId("range", "left");
+  //logVarId_t idRight = logGetVarId("range", "right");
+  logVarId_t idFront = logGetVarId("range", "front");
+  //logVarId_t idBack = logGetVarId("range", "back");
 
-  //uint8_t positioningInit = paramGetUint(idPositioningDeck);
+  //uint8_t positioningInit = paramGetUint(idPosDeck);
   //uint8_t multirangerInit = paramGetUint(idMultiranger);
+  
 
-  uint16_t up = logGetUint(idUp);
+  //uint16_t left = logGetUint(idLeft);
+  //uint16_t right = logGetUint(idRight);
+  
+  //uint16_t back = logGetUint(idBack);
 
+  //uint16_t left_o = radius - MIN(left, radius);
+  //uint16_t right_o = radius - MIN(right, radius);
+  
   if (state == takeOff) {
-    uint16_t left = logGetUint(idLeft);
-    uint16_t right = logGetUint(idRight);
-    uint16_t front = logGetUint(idFront);
-    uint16_t back = logGetUint(idBack);
-
-    uint16_t left_o = radius - MIN(left, radius);
-    uint16_t right_o = radius - MIN(right, radius);
-    float l_comp = (-1) * left_o * factor;
-    float r_comp = right_o * factor;
-    float velSide = r_comp + l_comp;
-    
-    uint16_t front_o = radius - MIN(front, radius);
-    uint16_t back_o = radius - MIN(back, radius);
-    float f_comp = (-1) * front_o * factor;
-    float b_comp = back_o * factor;
-    float velFront = b_comp + f_comp;
-
-    uint16_t up_o = radius - MIN(up, radius);
-    float height = height_sp - up_o/1000.0f;
-    if (velSide) {
-      velSide = velFront + height + 1;
-    }
+    DEBUG_PRINT("Taking off\n");
     takeOffDrone();
+    state = exploring;
+  } else {
+    if (state == emergencyStop) {
+      land();
+    }
+    if (state == idle) {
+      memset(&setpoint, 0, sizeof(setpoint_t));
+      commanderSetSetpoint(&setpoint, 3);
+    }
   }
   if (state == exploring){
-      goForward();
+    uint16_t front = logGetUint(idFront);
+    uint16_t front_o = radius - MIN(front, radius);
+    goForward();
     if (front_o!=0){
       obstacleDodge();
     }
-    goForward();
-  }
-  if (state == emergencyStop) {
-    land();
+    //goForward();
   }
 }
 
@@ -330,15 +314,16 @@ void appMain()
 
   struct packetRX rxPacket;
   struct packetTX txPacket;
+  //paramVarId_t idPositioningDeck = paramGetVarId("deck", "bcFlow2");
+  //paramVarId_t idMultiranger = paramGetVarId("deck", "bcMultiranger");
 
   while(1) {
-    // The drone moves depending on its state, wether we have a packet incoming or not
-    flightControl();
-
     // We continuously call this method to ensure the rxQueue does not overflow and to update our status
-    if (appchannelReceiveDataPacket(&rxPacket, sizeof(rxPacket), 50)) {
+    if (appchannelReceiveDataPacket(&rxPacket, sizeof(rxPacket), 0)) {
       txPacket.replyCode = commandHandler(rxPacket.commandTag);
       appchannelSendDataPacket(&txPacket, sizeof(txPacket));
     }
+    // The drone moves depending on its state, wether we have a packet incoming or not
+    flightControl();
   }
 }
