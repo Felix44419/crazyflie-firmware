@@ -164,7 +164,6 @@ int commandHandler(int commandTag){
         ledseqRun(&seq_testPassed);
         vTaskDelay(M2T(1000));
         ledseqStop(&seq_testPassed);
-        state = idle;
         replyCode = 420;
       }
       // Start mission
@@ -252,28 +251,41 @@ static void land(){
 }
 
 static void goForward(){
-  setHoverSetpoint(&setpoint, 30.0f, 0, 0, 0);
+  setHoverSetpoint(&setpoint, 0.25f, 0, height_sp, 0);
   commanderSetSetpoint(&setpoint, 3);
 }
 
 static void obstacleDodge(){
-  setHoverSetpoint(&setpoint, 0, 0, 0, (rand() % 60) + 30);
+  setHoverSetpoint(&setpoint, 0, 0, height_sp, (rand() % 60) + 30);
   commanderSetSetpoint(&setpoint,3);
-  vTaskDelay(M2T((rand()%1000)+500));
+  vTaskDelay(M2T((rand()%250)+250));
 }
 
-// TODO get a time reading of the total delay to run this method.
-// The delay shall be used to measure how long we can wait for a packet 
-void flightControl(){
-  vTaskDelay(M2T(10));
+void appMain()
+{
+  DEBUG_PRINT("Waiting for activation ...\n");
+  vTaskDelay(M2T(3000));
+  struct packetRX rxPacket;
+  struct packetTX txPacket;
+  paramVarId_t idPositioningDeck = paramGetVarId("deck", "bcFlow2");
+  paramVarId_t idMultiranger = paramGetVarId("deck", "bcMultiranger");
+
+  while(1) {
+    // We continuously call this method to ensure the rxQueue does not overflow and to update our status
+    if (appchannelReceiveDataPacket(&rxPacket, sizeof(rxPacket), 0)) {
+      txPacket.replyCode = commandHandler(rxPacket.commandTag);
+      appchannelSendDataPacket(&txPacket, sizeof(txPacket));
+    }
+    // The drone moves depending on its state, wether we have a packet incoming or not
+    vTaskDelay(M2T(10));
   //logVarId_t idUp = logGetVarId("range", "up");
   //logVarId_t idLeft = logGetVarId("range", "left");
   //logVarId_t idRight = logGetVarId("range", "right");
   logVarId_t idFront = logGetVarId("range", "front");
   //logVarId_t idBack = logGetVarId("range", "back");
 
-  //uint8_t positioningInit = paramGetUint(idPosDeck);
-  //uint8_t multirangerInit = paramGetUint(idMultiranger);
+  uint8_t positioningInit = paramGetUint(idPositioningDeck);
+  uint8_t multirangerInit = paramGetUint(idMultiranger);
   
 
   //uint16_t left = logGetUint(idLeft);
@@ -284,18 +296,13 @@ void flightControl(){
   //uint16_t left_o = radius - MIN(left, radius);
   //uint16_t right_o = radius - MIN(right, radius);
   
-  if (state == takeOff) {
+  if (state == takeOff && positioningInit && multirangerInit) {
     DEBUG_PRINT("Taking off\n");
     takeOffDrone();
     state = exploring;
-  } else {
-    if (state == emergencyStop) {
-      land();
-    }
-    if (state == idle) {
+  } else if (state==idle){
       memset(&setpoint, 0, sizeof(setpoint_t));
       commanderSetSetpoint(&setpoint, 3);
-    }
   }
   if (state == exploring){
     uint16_t front = logGetUint(idFront);
@@ -306,24 +313,8 @@ void flightControl(){
     }
     //goForward();
   }
-}
-
-void appMain()
-{
-  DEBUG_PRINT("Waiting for activation ...\n");
-
-  struct packetRX rxPacket;
-  struct packetTX txPacket;
-  //paramVarId_t idPositioningDeck = paramGetVarId("deck", "bcFlow2");
-  //paramVarId_t idMultiranger = paramGetVarId("deck", "bcMultiranger");
-
-  while(1) {
-    // We continuously call this method to ensure the rxQueue does not overflow and to update our status
-    if (appchannelReceiveDataPacket(&rxPacket, sizeof(rxPacket), 0)) {
-      txPacket.replyCode = commandHandler(rxPacket.commandTag);
-      appchannelSendDataPacket(&txPacket, sizeof(txPacket));
+  if (state == emergencyStop) {
+      land();
     }
-    // The drone moves depending on its state, wether we have a packet incoming or not
-    flightControl();
   }
 }
