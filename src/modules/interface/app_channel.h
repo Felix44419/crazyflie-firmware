@@ -39,7 +39,8 @@ typedef enum {
     takeOff,
     exploring,
     emergencyStop,
-    returnToBase
+    returnToBase,
+    crashed
 } FlightState;
 
 /**
