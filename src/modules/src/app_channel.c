@@ -41,6 +41,7 @@
 
 #include "../../hal/interface/ledseq.h"
 
+
 static SemaphoreHandle_t sendMutex;
 
 static xQueueHandle  rxQueue;
@@ -55,6 +56,7 @@ static const uint16_t radius = 300;
 
 static float height_sp = 0.50f;
 static const float velMax = 0.25f;
+short dataList[11];
 
 #define MAX(a,b) ((a>b)?a:b)
 #define MIN(a,b) ((a<b)?a:b)
@@ -215,55 +217,16 @@ static void setHoverSetpoint(setpoint_t *setpoint, float vx, float vy, float z, 
   setpoint->velocity_body = true;
 }
 
-<<<<<<< Updated upstream
-static void takeOffDrone(){
-  setHoverSetpoint(&setpoint, 0, 0, 0.3f, 0);
-  commanderSetSetpoint(&setpoint, 3);
-  vTaskDelay(M2T(100));
-  state = exploring;
-}  
-
-static void land(){
-  // To ensure the landing is smooth, we calculate a factor of 5% the usual height
-  float landingFactor = height_sp * 0.98f;
-  while(height_sp>0.01f) {
-    height_sp = height_sp - landingFactor;
-    setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
-    commanderSetSetpoint(&setpoint, 3);
-  }
-  state = idle;
-}
-
-static void goForward(){
-  setHoverSetpoint(&setpoint, 0.25f, 0, height_sp, 0);
-  commanderSetSetpoint(&setpoint, 3);
-}
-
-static void obstacleDodge(){
-  setHoverSetpoint(&setpoint, 0, 0, height_sp, (rand() % 60) + 30);
-  commanderSetSetpoint(&setpoint,3);
-  vTaskDelay(M2T((rand()%250)+250));
-}
-
 void appMain()
 {
-  DEBUG_PRINT("Waiting for activation ...\n");
-=======
-void appMain()
-{
-  
   static setpoint_t setpoint;
-
->>>>>>> Stashed changes
+  DEBUG_PRINT("Waiting for activation ...\n");
   vTaskDelay(M2T(3000));
   struct packetRX rxPacket;
   struct packetTX txPacket;
   paramVarId_t idPositioningDeck = paramGetVarId("deck", "bcFlow2");
   paramVarId_t idMultiranger = paramGetVarId("deck", "bcMultiranger");
 
-<<<<<<< Updated upstream
-  while(1) {
-=======
   logVarId_t idLeft = logGetVarId("range", "left");
   logVarId_t idRight = logGetVarId("range", "right");
   logVarId_t idFront = logGetVarId("range", "front");
@@ -274,7 +237,6 @@ void appMain()
   int counter=0;
   DEBUG_PRINT("Waiting for activation ...\n");
   while(1) {
-    //loop to send status to server
     counter += 1;
     if (counter == 200){
       if (state == idle){
@@ -300,54 +262,10 @@ void appMain()
     counter = 0;
     }
     
->>>>>>> Stashed changes
     // We continuously call this method to ensure the rxQueue does not overflow and to update our status
     if (appchannelReceiveDataPacket(&rxPacket, sizeof(rxPacket), 0)) {
       txPacket.replyCode = commandHandler(rxPacket.commandTag);
       appchannelSendDataPacket(&txPacket, sizeof(txPacket));
-<<<<<<< Updated upstream
-    }
-    // The drone moves depending on its state, wether we have a packet incoming or not
-    vTaskDelay(M2T(10));
-  //logVarId_t idUp = logGetVarId("range", "up");
-  //logVarId_t idLeft = logGetVarId("range", "left");
-  //logVarId_t idRight = logGetVarId("range", "right");
-  logVarId_t idFront = logGetVarId("range", "front");
-  //logVarId_t idBack = logGetVarId("range", "back");
-
-  uint8_t positioningInit = paramGetUint(idPositioningDeck);
-  uint8_t multirangerInit = paramGetUint(idMultiranger);
-  
-
-  //uint16_t left = logGetUint(idLeft);
-  //uint16_t right = logGetUint(idRight);
-  
-  //uint16_t back = logGetUint(idBack);
-
-  //uint16_t left_o = radius - MIN(left, radius);
-  //uint16_t right_o = radius - MIN(right, radius);
-  
-  if (state == takeOff && positioningInit && multirangerInit) {
-    DEBUG_PRINT("Taking off\n");
-    takeOffDrone();
-    state = exploring;
-  } else if (state==idle){
-      memset(&setpoint, 0, sizeof(setpoint_t));
-      commanderSetSetpoint(&setpoint, 3);
-  }
-  if (state == exploring){
-    uint16_t front = logGetUint(idFront);
-    uint16_t front_o = radius - MIN(front, radius);
-    goForward();
-    if (front_o!=0){
-      obstacleDodge();
-    }
-    //goForward();
-  }
-  if (state == emergencyStop) {
-      land();
-    }
-=======
     }
 
     // The drone moves depending on its state, wether we have a packet incoming or not
@@ -425,6 +343,5 @@ void appMain()
       }
     }
 
->>>>>>> Stashed changes
   }
 }

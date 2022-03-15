@@ -36,11 +36,11 @@
 #endif
 
 #ifdef DEBUG_MODULE
-#define DEBUG_FMT(fmt) DEBUG_MODULE ": " fmt
+  #define DEBUG_FMT(fmt) DEBUG_MODULE ": " fmt
 #endif
 
 #ifndef DEBUG_FMT
-#define DEBUG_FMT(fmt) fmt
+  #define DEBUG_FMT(fmt) fmt
 #endif
 
 void debugInit(void);
@@ -59,8 +59,12 @@ void debugInit(void);
   #define DEBUG_PRINT(fmt, ...) SEGGER_RTT_printf(0, fmt, ## __VA_ARGS__)
   #define DEBUG_PRINT_OS(fmt, ...) SEGGER_RTT_printf(0, fmt, ## __VA_ARGS__)
 #else // Debug using radio or USB
-  #define DEBUG_PRINT(fmt, ...) consolePrintf(DEBUG_FMT(fmt), ##__VA_ARGS__)
-  #define DEBUG_PRINT_OS(fmt, ...) consolePrintf(DEBUG_FMT(fmt), ##__VA_ARGS__)
+  #ifndef DEBUG_PRINT
+    #define DEBUG_PRINT(fmt, ...) consolePrintf(DEBUG_FMT(fmt), ##__VA_ARGS__)
+  #endif
+  #ifndef DEBUG_PRINT_OS
+    #define DEBUG_PRINT_OS(fmt, ...) consolePrintf(DEBUG_FMT(fmt), ##__VA_ARGS__)
+  #endif
   //#define DEBUG_PRINT(fmt, ...)
 #endif
 
