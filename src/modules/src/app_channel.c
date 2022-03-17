@@ -214,8 +214,8 @@ static void setHoverSetpoint(setpoint_t *setpoint, float vx, float vy, float z, 
   setpoint->velocity.x = vx;
   setpoint->velocity.y = vy;
 
-  setpoint->velocity_body = true;
-}
+  setpoint->velocity_body = true;    while le.is_connected:
+        time.sleep(1)
 
 void appMain()
 {
@@ -237,30 +237,6 @@ void appMain()
   int counter=0;
   DEBUG_PRINT("Waiting for activation ...\n");
   while(1) {
-    counter += 1;
-    if (counter == 200){
-      if (state == idle){
-        replyCode = 0201;
-      }
-      if (state == takeOff){
-        replyCode = 0202;
-      }
-      if (state == exploring){
-        replyCode = 0203;
-      }
-      if (state == emergencyStop){
-        replyCode = 0204;
-      }
-      if (state == returnToBase){
-        replyCode = 0205;
-      }
-      if (state == crashed){
-        replyCode = 0206;
-      }
-    txPacket.replyCode = replyCode;
-    appchannelSendDataPacket(&txPacket, sizeof(txPacket));
-    counter = 0;
-    }
     
     // We continuously call this method to ensure the rxQueue does not overflow and to update our status
     if (appchannelReceiveDataPacket(&rxPacket, sizeof(rxPacket), 0)) {
