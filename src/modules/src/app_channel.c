@@ -299,7 +299,14 @@ void appMain()
         DEBUG_PRINT("X\n");
       }
       if ( (front_o ) != 0 ){
-        yawrateComp= rand()%80 + 80;
+        int turnDirection = 0;
+        turnDirection = rand()%2;
+        if (turnDirection==1){
+          yawrateComp= rand()%80 + 80;
+        } else {
+          yawrateComp= rand()%-80 - 80;
+        }
+
         velFront = 0;
       }
       if ( (front_o ) == 0 ){
@@ -314,6 +321,7 @@ void appMain()
     if (state == emergencyStop) {
         memset(&setpoint, 0, sizeof(setpoint_t));
         commanderSetSetpoint(&setpoint, 3);
+        state=idle;
       }   
 
   }
