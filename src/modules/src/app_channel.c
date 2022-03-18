@@ -55,7 +55,7 @@ FlightState state;
 static const uint16_t radius = 300;
 
 static float height_sp = 0.30f;
-static const float velMax = 1.0f;
+static const float velMax = 0.7f;
 short dataList[11];
 
 #define MAX(a,b) ((a>b)?a:b)
@@ -302,9 +302,9 @@ void appMain()
         int turnDirection = 0;
         turnDirection = rand()%2;
         if (turnDirection==1){
-          yawrateComp= rand()%80 + 80;
+          yawrateComp= rand()%60 + 60;
         } else {
-          yawrateComp= rand()%-80 - 80;
+          yawrateComp= rand()%-60 - 60;
         }
 
         velFront = 0;
