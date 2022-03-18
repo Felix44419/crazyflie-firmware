@@ -54,8 +54,8 @@ FlightState state;
 
 static const uint16_t radius = 300;
 
-static float height_sp = 0.50f;
-static const float velMax = 0.25f;
+static float height_sp = 0.30f;
+static const float velMax = 0.5f;
 short dataList[11];
 
 #define MAX(a,b) ((a>b)?a:b)
@@ -183,7 +183,7 @@ int commandHandler(int commandTag){
       if (commandTag == 03){
 
         ledseqRun(&seq_missionStop);
-        vTaskDelay(M2T(1250));
+        vTaskDelay(M2T(450));
         ledseqStop(&seq_missionStop);
         // We stop the mission
         state = emergencyStop;
@@ -214,9 +214,8 @@ static void setHoverSetpoint(setpoint_t *setpoint, float vx, float vy, float z, 
   setpoint->velocity.x = vx;
   setpoint->velocity.y = vy;
 
-  setpoint->velocity_body = true;    while le.is_connected:
-        time.sleep(1)
-
+  setpoint->velocity_body = true;  
+}
 void appMain()
 {
   static setpoint_t setpoint;
@@ -233,8 +232,6 @@ void appMain()
   logVarId_t idBack = logGetVarId("range", "back");
 
   float factor = velMax/radius;
-  int replyCode= -1;
-  int counter=0;
   DEBUG_PRINT("Waiting for activation ...\n");
   while(1) {
     
@@ -245,7 +242,7 @@ void appMain()
     }
 
     // The drone moves depending on its state, wether we have a packet incoming or not
-    vTaskDelay(M2T(10));
+    vTaskDelay(M2T(50));
     //logVarId_t idUp = logGetVarId("range", "up");
     
 
@@ -268,6 +265,7 @@ void appMain()
       DEBUG_PRINT("Taking off\n");
       setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
       commanderSetSetpoint(&setpoint, 3);
+      vTaskDelay(M2T(10));
       state = exploring;
     } else if (state == idle) {
         memset(&setpoint, 0, sizeof(setpoint_t));
@@ -284,34 +282,25 @@ void appMain()
       uint16_t right_o = radius - MIN(right, radius);
       uint16_t front_o = radius - MIN(front, radius);
       uint16_t back_o = radius - MIN(back, radius);
-
+      float b_comp = back_o * factor;
       float l_comp = (-1) * left_o * factor;
       float r_comp = right_o * factor;
+      float f_comp = (-1) * front_o * factor;
       float velSide = r_comp + l_comp;
+      float velFront = b_comp + f_comp;
+      velFront=velFront;
+      uint16_t yawrateComp = 0;
+      if ( (front_o ) != 0 ){
+        yawrateComp= rand()%80 + 80;
+      }
+      setHoverSetpoint(&setpoint, 0.05f + velFront, velSide, height_sp, yawrateComp);
+      commanderSetSetpoint(&setpoint, 3);
+      vTaskDelay(M2T(10));
 
-      setHoverSetpoint(&setpoint, 0.25f, 0, height_sp, 0);
-      commanderSetSetpoint(&setpoint, 3);
-      if ( (front_o || back_o) !=0 ){
-        setHoverSetpoint(&setpoint, 0, 0, height_sp, (rand() % 60) + 45);
-        commanderSetSetpoint(&setpoint,3);
-        vTaskDelay(M2T((rand()%500)+500));
-      }
-      if ( (right_o || left_o ) !=0 ){
-        setHoverSetpoint(&setpoint, 0, velSide, height_sp, 0);
-        commanderSetSetpoint(&setpoint,3);
-        vTaskDelay(M2T((rand()%500)+500));
-      }
-      if ( (back_o) !=0 ){
-        setHoverSetpoint(&setpoint, 0, 0, height_sp, (rand() % 60) - 45);
-        commanderSetSetpoint(&setpoint,3);
-        vTaskDelay(M2T((rand()%500)+500));
-      }
-      setHoverSetpoint(&setpoint, 0.25f, 0, height_sp, 0);
-      commanderSetSetpoint(&setpoint, 3);
     }
     
     if (state == emergencyStop) {
-        float landingFactor = height_sp * 0.95f;
+        float landingFactor = height_sp * 0.80f;
       while(height_sp>0.10f) {
         height_sp = height_sp - landingFactor;
         setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
