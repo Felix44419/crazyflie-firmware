@@ -55,7 +55,7 @@ FlightState state;
 static const uint16_t radius = 300;
 
 static float height_sp = 0.30f;
-static const float velMax = 0.5f;
+static const float velMax = 1.0f;
 short dataList[11];
 
 #define MAX(a,b) ((a>b)?a:b)
@@ -230,6 +230,7 @@ void appMain()
   logVarId_t idRight = logGetVarId("range", "right");
   logVarId_t idFront = logGetVarId("range", "front");
   logVarId_t idBack = logGetVarId("range", "back");
+  logVarId_t idUp = logGetVarId("range", "up");
 
   float factor = velMax/radius;
   DEBUG_PRINT("Waiting for activation ...\n");
@@ -277,36 +278,43 @@ void appMain()
       uint16_t right = logGetUint(idRight);
       uint16_t front = logGetUint(idFront);
       uint16_t back = logGetUint(idBack);
+      uint16_t up = logGetUint(idUp);
 
       uint16_t left_o = radius - MIN(left, radius);
       uint16_t right_o = radius - MIN(right, radius);
       uint16_t front_o = radius - MIN(front, radius);
       uint16_t back_o = radius - MIN(back, radius);
+      uint16_t up_o = radius - MIN(up, radius);
       float b_comp = back_o * factor;
       float l_comp = (-1) * left_o * factor;
       float r_comp = right_o * factor;
       float f_comp = (-1) * front_o * factor;
       float velSide = r_comp + l_comp;
       float velFront = b_comp + f_comp;
-      velFront=velFront;
+      float cmdHeight = height_sp - up_o / 1000.0f;
       uint16_t yawrateComp = 0;
+      if (cmdHeight < height_sp - 0.2f)
+      {
+        state = emergencyStop;
+        DEBUG_PRINT("X\n");
+      }
       if ( (front_o ) != 0 ){
         yawrateComp= rand()%80 + 80;
+        velFront = 0;
       }
-      setHoverSetpoint(&setpoint, 0.05f + velFront, velSide, height_sp, yawrateComp);
+      if ( (front_o ) == 0 ){
+        yawrateComp= 0;
+        velFront = 0.1f;
+      }
+      setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
 
     }
-    
     if (state == emergencyStop) {
-        float landingFactor = height_sp * 0.80f;
-      while(height_sp>0.10f) {
-        height_sp = height_sp - landingFactor;
-        setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
+        memset(&setpoint, 0, sizeof(setpoint_t));
         commanderSetSetpoint(&setpoint, 3);
-      }
-    }
+      }   
 
   }
 }
