@@ -304,7 +304,7 @@ void appMain()
       }
       if ( (front_o ) == 0 ){
         yawrateComp= 0;
-        velFront = 0.1f;
+        velFront = 0.2f;
       }
       setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
       commanderSetSetpoint(&setpoint, 3);
