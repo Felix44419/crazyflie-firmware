@@ -302,9 +302,9 @@ void appMain()
         int turnDirection = 0;
         turnDirection = rand()%2;
         if (turnDirection==1){
-          yawrateComp= rand()%60 + 60;
+          yawrateComp= rand()%45 + 60;
         } else {
-          yawrateComp= rand()%-60 - 60;
+          yawrateComp= rand()%-45 - 60;
         }
 
         velFront = 0;
