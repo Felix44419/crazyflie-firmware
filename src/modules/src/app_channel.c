@@ -231,13 +231,11 @@ void appMain()
   logVarId_t idFront = logGetVarId("range", "front");
   logVarId_t idBack = logGetVarId("range", "back");
   logVarId_t idUp = logGetVarId("range", "up");
-  logVarId_t bat = logGetVarId("pm", "vbat");
-  float vbat = logGetUint(bat);
 
   float factor = velMax/radius;
   DEBUG_PRINT("Waiting for activation ...\n");
   while(1) {
-    float vbat1 = logGetUint(bat);
+    
     // We continuously call this method to ensure the rxQueue does not overflow and to update our status
     if (appchannelReceiveDataPacket(&rxPacket, sizeof(rxPacket), 0)) {
       txPacket.replyCode = commandHandler(rxPacket.commandTag);
@@ -248,12 +246,13 @@ void appMain()
     vTaskDelay(M2T(50));
     //logVarId_t idUp = logGetVarId("range", "up");
     
+
     uint8_t positioningInit = paramGetUint(idPositioningDeck);
     uint8_t multirangerInit = paramGetUint(idMultiranger);
 
     DEBUG_PRINT("Position init value: %i", positioningInit);
     DEBUG_PRINT("Multiranger init value: %i", multirangerInit);
-    float vbat2 = logGetUint(bat);
+
     //uint16_t left = logGetUint(idLeft);
     //uint16_t right = logGetUint(idRight);
     
@@ -262,10 +261,8 @@ void appMain()
     //uint16_t left_o = radius - MIN(left, radius);
     //uint16_t right_o = radius - MIN(right, radius);
     if( positioningInit && multirangerInit){}
-    if (state == exploring && vbat<3.77f){
-      state = emergencyStop;
-    }
-    if (state == takeOff && positioningInit && multirangerInit && vbat>3.77f) {
+
+    if (state == takeOff && positioningInit && multirangerInit) {
       DEBUG_PRINT("Taking off\n");
       setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
       commanderSetSetpoint(&setpoint, 3);
@@ -275,7 +272,7 @@ void appMain()
         memset(&setpoint, 0, sizeof(setpoint_t));
         commanderSetSetpoint(&setpoint, 3);
     }
-    float vbat3 = logGetUint(bat);
+
     if (state == exploring){
       uint16_t left = logGetUint(idLeft);
       uint16_t right = logGetUint(idRight);
@@ -295,7 +292,7 @@ void appMain()
       float velSide = r_comp + l_comp;
       float velFront = b_comp + f_comp;
       float cmdHeight = height_sp - up_o / 1000.0f;
-      uint16_t yawrateComp = 0;
+      float yawrateComp = 0.0f;
       if (cmdHeight < height_sp - 0.2f)
       {
         state = emergencyStop;
@@ -305,9 +302,15 @@ void appMain()
         int turnDirection = 0;
         turnDirection = rand()%2;
         if (turnDirection==1){
-          yawrateComp= rand()%45 + 60;
+          yawrateComp= 140.0f;
+      setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
+      commanderSetSetpoint(&setpoint, 3);
+      vTaskDelay(M2T(1000));
         } else {
-          yawrateComp= rand()%-45 - 60;
+          yawrateComp= -140.0f;
+      setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
+      commanderSetSetpoint(&setpoint, 3);
+      vTaskDelay(M2T(1000));
         }
 
         velFront = 0;
@@ -319,12 +322,7 @@ void appMain()
       setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
-      //method to take the maximum read of the battery level
-      float vbat4 = logGetUint(bat);
-      float vbat12 = MAX(vbat1,vbat2);
-      float vbat23 = MAX(vbat12,vbat3);
-      float vbat34 = MAX(vbat23,vbat4);
-      vbat = vbat34;
+
     }
     if (state == emergencyStop) {
         memset(&setpoint, 0, sizeof(setpoint_t));
