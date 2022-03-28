@@ -22,43 +22,20 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  *
- * appchanel_test.c: Demonstrate the appchanel functionality
+ * push.c - App layer application of the onboard push demo. The crazyflie 
+ * has to have the multiranger and the flowdeck version 2.
  */
+//#pragma once
 
-#include "app.h"
-#include "app_channel.h"
-#include "../../../src/drivers/interface/led.h"
+#include <string.h>
+#include <stdint.h>
+#include <stdbool.h>
 
-#include "debug.h"
+typedef enum {
+    idle,
+    lowUnlock,
+    unlocked,
+    stopping
+} State;
 
-#define DEBUG_MODULE "HELLOWORLD"
-
-struct testPacketRX {
-  float x;
-} __attribute__((packed));
-
-struct testPacketTX {
-  float sum;
-} __attribute__((packed));
-/*
-void appMain()
-{
-  DEBUG_PRINT("Waiting for activation ...\n");
-
-  struct testPacketRX rxPacket;
-  struct testPacketTX txPacket;
-
-  while(1) {
-    if (appchannelReceiveDataPacket(&rxPacket, sizeof(rxPacket), APPCHANNEL_WAIT_FOREVER)) {
-
-      txPacket.sum =1;
-
-      for (int i=0; i<100;i++){
-          ledSet(LED_RED_L, 1);
-          ledSet(LED_GREEN_L, 1);
-      }
-      appchannelSendDataPacketBlock(&txPacket, sizeof(txPacket));
-    }
-  }
-}
-*/
+#define DEBUG_MODULE "PUSH"

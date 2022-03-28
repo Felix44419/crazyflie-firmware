@@ -34,6 +34,9 @@
 
 #include "crtp.h"
 #include "platformservice.h"
+#include "debug.h"
+#include "../../hal/interface/ledseq.h"
+#include "missionController.h"
 
 static SemaphoreHandle_t sendMutex;
 
@@ -43,11 +46,13 @@ static bool overflow;
 
 static int sendDataPacket(void* data, size_t length, const bool doBlock);
 
-// Deprecated
-void appchannelSendPacket(void* data, size_t length)
-{
-  appchannelSendDataPacketBlock(data, length);
-}
+struct packetRX {
+  int commandTag;
+} __attribute__((packed));
+
+struct packetTX {
+  int replyCode;
+} __attribute__((packed));
 
 int appchannelSendDataPacket(void* data, size_t length)
 {
@@ -57,11 +62,6 @@ int appchannelSendDataPacket(void* data, size_t length)
 void appchannelSendDataPacketBlock(void* data, size_t length)
 {
   sendDataPacket(data, length, true);
-}
-
-// Deprecated
-size_t appchannelReceivePacket(void* buffer, size_t max_length, int timeout_ms) {
-  return appchannelReceiveDataPacket(buffer, max_length, timeout_ms);
 }
 
 size_t appchannelReceiveDataPacket(void* buffer, size_t max_length, int timeout_ms) {
@@ -132,4 +132,53 @@ static int sendDataPacket(void* data, size_t length, const bool doBlock)
   xSemaphoreGive(sendMutex);
 
   return result;
+}
+
+void appMain()
+{
+  DEBUG_PRINT("Waiting for activation ...\n");
+
+  struct packetRX rxPacket;
+  struct packetTX txPacket;
+
+  while(1) {
+    if (appchannelReceiveDataPacket(&rxPacket, sizeof(rxPacket), APPCHANNEL_WAIT_FOREVER)) {
+
+      txPacket.replyCode = 00;
+      // Identify
+      if (rxPacket.commandTag == 1){   
+        ledseqEnable(true);
+
+        ledseqRun(&seq_alive);
+        vTaskDelay(M2T(100));
+        ledseqStop(&seq_alive);
+        vTaskDelay(M2T(100));
+        ledseqRun(&seq_linkDown);
+        vTaskDelay(M2T(100));
+        ledseqStop(&seq_linkDown);
+
+        ledseqEnable(false);
+        txPacket.replyCode = 420;
+      }
+      // Start mission
+      if (rxPacket.commandTag == 2){
+
+        ledseqRun(&seq_linkUp);
+        vTaskDelay(M2T(100));
+        ledseqStop(&seq_linkUp);
+        vTaskDelay(M2T(100));
+        ledseqRun(&seq_linkDown);
+        vTaskDelay(M2T(100));
+        ledseqStop(&seq_linkDown);
+        
+        // We start the mission
+        //changeState(unlocked);
+
+        txPacket.replyCode = 9000;
+      }
+      appchannelSendDataPacket(&txPacket, sizeof(txPacket));
+      
+      rxPacket.commandTag= 0;
+    }
+  }
 }
