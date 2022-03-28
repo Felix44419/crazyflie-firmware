@@ -32,7 +32,8 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "queue.h"
-
+#include <time.h>
+#include <stdio.h>
 #include "platformservice.h"
 #include <stdlib.h>
 #include "debug.h"
@@ -301,13 +302,14 @@ void appMain()
       if ( (front_o ) != 0 ){
         int turnDirection = 0;
         turnDirection = rand()%2;
+        float randomNumber = (float)rand()/(float)(RAND_MAX/200.0f);
         if (turnDirection==1){
-          yawrateComp= 140.0f;
+          yawrateComp= randomNumber;
       setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(1000));
         } else {
-          yawrateComp= -140.0f;
+          yawrateComp= -randomNumber;
       setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(1000));
