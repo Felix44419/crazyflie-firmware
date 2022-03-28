@@ -302,14 +302,14 @@ void appMain()
       if ( (front_o ) != 0 ){
         int turnDirection = 0;
         turnDirection = rand()%2;
-        float randomNumber = (float)rand()/(float)(RAND_MAX/200.0f);
+        float randomNumber = (float)rand()/(float)(RAND_MAX/150.0f);
         if (turnDirection==1){
-          yawrateComp= randomNumber;
+          yawrateComp= randomNumber + 30.0f;
       setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(1000));
         } else {
-          yawrateComp= -randomNumber;
+          yawrateComp= -randomNumber + 30.0f;
       setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(1000));
