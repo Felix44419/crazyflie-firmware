@@ -264,10 +264,10 @@ void appMain()
     //uint16_t left_o = radius - MIN(left, radius);
     //uint16_t right_o = radius - MIN(right, radius);
     if( positioningInit && multirangerInit){}
-    if (state == exploring && vbat<3.77f){
+    /*if (state == exploring && vbat<3.77f){
       state = emergencyStop;
-    }
-    if (state == takeOff && positioningInit && multirangerInit && vbat>3.77f) {
+    }*/
+    if (state == takeOff && positioningInit && multirangerInit /*&& vbat>3.77f*/) {
       DEBUG_PRINT("Taking off\n");
       setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
       commanderSetSetpoint(&setpoint, 3);
@@ -333,6 +333,7 @@ void appMain()
       float vbat23 = MAX(vbat12,vbat3);
       float vbat34 = MAX(vbat23,vbat4);
       vbat = vbat34;
+      vbat=vbat;
     }
     if (state == emergencyStop) {
         memset(&setpoint, 0, sizeof(setpoint_t));
