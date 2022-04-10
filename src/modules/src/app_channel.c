@@ -39,6 +39,7 @@
 #include "debug.h"
 #include "log.h"
 #include "param.h"
+#include "math.h"
 
 #include "../../hal/interface/ledseq.h"
 
@@ -187,7 +188,7 @@ int commandHandler(int commandTag){
         vTaskDelay(M2T(450));
         ledseqStop(&seq_missionStop);
         // We stop the mission
-        state = emergencyStop;
+        state = returnToBase;
 
         replyCode = 0103;
       }
@@ -196,19 +197,14 @@ int commandHandler(int commandTag){
 }
 /*
   Methods and attributes of the drone flight control
-  
-
-
-*/
+  */
 static void setHoverSetpoint(setpoint_t *setpoint, float vx, float vy, float z, float yawrate)
 {
   setpoint->mode.z = modeAbs;
   setpoint->position.z = z;
 
-
   setpoint->mode.yaw = modeVelocity;
   setpoint->attitudeRate.yaw = yawrate;
-
 
   setpoint->mode.x = modeVelocity;
   setpoint->mode.y = modeVelocity;
@@ -217,9 +213,48 @@ static void setHoverSetpoint(setpoint_t *setpoint, float vx, float vy, float z, 
 
   setpoint->velocity_body = true;  
 }
+
+static void setReturnToBaseSetpoint(setpoint_t *setpoint, setpoint_t *startpoint)
+{
+  setpoint->mode.z = modeAbs;
+  setpoint->position.z = startpoint->position.z;
+
+  setpoint->mode.yaw = modeVelocity;
+  setpoint->attitudeRate.yaw = 0.0;
+
+  setpoint->mode.x = modeAbs;
+  setpoint->mode.y = modeAbs;
+  setpoint->position.x = startpoint->position.x;
+  setpoint->position.y = startpoint->position.y;
+
+  setpoint->velocity_body = true;  
+}
+
+static void dodgeObstacle(setpoint_t *setpoint, float velFront, float velSide, float cmdHeight){
+  
+  int turnDirection = 0;
+  turnDirection = rand()%2;
+  float randomNumber = (float)rand()/(float)(RAND_MAX/150.0f);
+  float yawrateComp = 0.0;
+
+  if (turnDirection==1){
+    yawrateComp= randomNumber + 30.0f;
+    setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
+    commanderSetSetpoint(&setpoint, 3);
+    vTaskDelay(M2T(1000));
+  } else {
+    yawrateComp= -randomNumber + 30.0f;
+    setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
+    commanderSetSetpoint(&setpoint, 3);
+    vTaskDelay(M2T(1000));
+  }
+}
+
 void appMain()
 {
   static setpoint_t setpoint;
+  static setpoint_t startpoint;
+
   DEBUG_PRINT("Waiting for activation ...\n");
   vTaskDelay(M2T(3000));
   struct packetRX rxPacket;
@@ -256,13 +291,7 @@ void appMain()
     DEBUG_PRINT("Position init value: %i", positioningInit);
     DEBUG_PRINT("Multiranger init value: %i", multirangerInit);
     float vbat2 = logGetUint(bat);
-    //uint16_t left = logGetUint(idLeft);
-    //uint16_t right = logGetUint(idRight);
-    
-    //uint16_t back = logGetUint(idBack);
 
-    //uint16_t left_o = radius - MIN(left, radius);
-    //uint16_t right_o = radius - MIN(right, radius);
     if( positioningInit && multirangerInit){}
     /*if (state == exploring && vbat<3.77f){
       state = emergencyStop;
@@ -272,12 +301,15 @@ void appMain()
       setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
+      // We read the current position as the start position of the drone
+      commanderGetSetpoint(&startpoint, 3);
       state = exploring;
     } else if (state == idle) {
         memset(&setpoint, 0, sizeof(setpoint_t));
         commanderSetSetpoint(&setpoint, 3);
     }
     float vbat3 = logGetUint(bat);
+
     if (state == exploring){
       uint16_t left = logGetUint(idLeft);
       uint16_t right = logGetUint(idRight);
@@ -294,6 +326,7 @@ void appMain()
       float l_comp = (-1) * left_o * factor;
       float r_comp = right_o * factor;
       float f_comp = (-1) * front_o * factor;
+
       float velSide = r_comp + l_comp;
       float velFront = b_comp + f_comp;
       float cmdHeight = height_sp - up_o / 1000.0f;
@@ -307,24 +340,26 @@ void appMain()
         int turnDirection = 0;
         turnDirection = rand()%2;
         float randomNumber = (float)rand()/(float)(RAND_MAX/150.0f);
+        float yawrateComp = 0.0;
+
         if (turnDirection==1){
           yawrateComp= randomNumber + 30.0f;
-      setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
-      commanderSetSetpoint(&setpoint, 3);
-      vTaskDelay(M2T(1000));
+          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
+          commanderSetSetpoint(&setpoint, 3);
+          vTaskDelay(M2T(1000));
         } else {
           yawrateComp= -randomNumber + 30.0f;
-      setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
-      commanderSetSetpoint(&setpoint, 3);
-      vTaskDelay(M2T(1000));
+          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
+          commanderSetSetpoint(&setpoint, 3);
+          vTaskDelay(M2T(1000));
         }
-
         velFront = 0;
       }
       if ( (front_o ) == 0 ){
         yawrateComp= 0;
         velFront = 0.2f;
       }
+
       setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
@@ -335,11 +370,75 @@ void appMain()
       vbat = vbat34;
       vbat=vbat;
     }
+
     if (state == emergencyStop) {
         memset(&setpoint, 0, sizeof(setpoint_t));
         commanderSetSetpoint(&setpoint, 3);
         state=idle;
-      }   
+    }   
 
+    if (state == returnToBase) {
+      uint16_t left = logGetUint(idLeft);
+      uint16_t right = logGetUint(idRight);
+      uint16_t front = logGetUint(idFront);
+      uint16_t back = logGetUint(idBack);
+      uint16_t up = logGetUint(idUp);
+
+      uint16_t left_o = radius - MIN(left, radius);
+      uint16_t right_o = radius - MIN(right, radius);
+      uint16_t front_o = radius - MIN(front, radius);
+      uint16_t back_o = radius - MIN(back, radius);
+      uint16_t up_o = radius - MIN(up, radius);
+      float b_comp = back_o * factor;
+      float l_comp = (-1) * left_o * factor;
+      float r_comp = right_o * factor;
+      float f_comp = (-1) * front_o * factor;
+
+      float velSide = r_comp + l_comp;
+      float velFront = b_comp + f_comp;
+      float cmdHeight = height_sp - up_o / 1000.0f;
+      float yawrateComp = 0.0f;
+
+      if ( (front_o ) != 0 ){
+        int turnDirection = 0;
+        turnDirection = rand()%2;
+        float randomNumber = (float)rand()/(float)(RAND_MAX/150.0f);
+        float yawrateComp = 0.0;
+
+        if (turnDirection==1){
+          yawrateComp= randomNumber + 30.0f;
+          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
+          commanderSetSetpoint(&setpoint, 3);
+          vTaskDelay(M2T(1000));
+        } else {
+          yawrateComp= -randomNumber + 30.0f;
+          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
+          commanderSetSetpoint(&setpoint, 3);
+          vTaskDelay(M2T(1000));
+        }
+        velFront = 0.0f;
+      }
+      if ( (front_o ) == 0 ){
+        yawrateComp= 0;
+        velFront = 0.2f;
+      }
+      setReturnToBaseSetpoint(&setpoint, &startpoint);
+      commanderSetSetpoint(&setpoint, 3);
+      vTaskDelay(M2T(20));
+
+      setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
+      commanderSetSetpoint(&setpoint, 3);
+      vTaskDelay(M2T(10));
+      commanderGetSetpoint(&setpoint, 3);
+      vTaskDelay(M2T(10));
+      // If we arrive less than 1m from the base we have reached our destination and can land safely
+      // We use the Euclidean distance 
+      float distanceToBase = sqrt(pow( (&setpoint.position.x - &startpoint.position.x),2 ) + pow( (&setpoint.position.x - &startpoint.position.x), 2));
+      if (distanceToBase < 1.0f){
+        memset(&setpoint, 0, sizeof(setpoint_t));
+        commanderSetSetpoint(&setpoint, 3);
+        state=idle;
+      }
+    }
   }
 }
