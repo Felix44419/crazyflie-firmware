@@ -42,7 +42,7 @@
 #include "math.h"
 
 #include "../../hal/interface/ledseq.h"
-
+#include "radiolink.h"
 
 static SemaphoreHandle_t sendMutex;
 
@@ -168,33 +168,43 @@ int commandHandler(int commandTag){
         ledseqRun(&seq_testPassed);
         vTaskDelay(M2T(1000));
         ledseqStop(&seq_testPassed);
-        state = idle;
+        //state = idle;
         replyCode = 0101;
       }
       // Start mission
       if (commandTag == 02){
-
-        ledseqRun(&seq_missionStart);
-        vTaskDelay(M2T(450));
-        ledseqStop(&seq_missionStart);
         // We start the mission
         state = takeOff;
         replyCode = 0102;
       }
       // Stop mission
       if (commandTag == 03){
+        // We stop the mission
+        state = emergencyStop;
 
-        ledseqRun(&seq_missionStop);
-        vTaskDelay(M2T(450));
-        ledseqStop(&seq_missionStop);
+        replyCode = 0103;
+      }
+      if (commandTag == 04){
         // We stop the mission
         state = returnToBase;
 
-        replyCode = 0103;
+        replyCode = 0104;
       }
       ledseqEnable(false);
       return replyCode;
 }
+/*
+void p2pcallbackHandler(P2PPacket *p)
+{
+  // Parse the data from the other crazyflie and print it
+  uint8_t other_id = p->data[0];
+  static char msg[MESSAGE_LENGHT + 1];
+  memcpy(&msg, &p->data[1], sizeof(char)*MESSAGE_LENGHT);
+  msg[MESSAGE_LENGHT] = 0;
+  uint8_t rssi = p->rssi;
+
+}*/
+
 /*
   Methods and attributes of the drone flight control
   */
@@ -213,23 +223,7 @@ static void setHoverSetpoint(setpoint_t *setpoint, float vx, float vy, float z, 
 
   setpoint->velocity_body = true;  
 }
-
-static void setReturnToBaseSetpoint(setpoint_t *setpoint, setpoint_t *startpoint)
-{
-  setpoint->mode.z = modeAbs;
-  setpoint->position.z = startpoint->position.z;
-
-  setpoint->mode.yaw = modeVelocity;
-  setpoint->attitudeRate.yaw = 0.0;
-
-  setpoint->mode.x = modeAbs;
-  setpoint->mode.y = modeAbs;
-  setpoint->position.x = startpoint->position.x;
-  setpoint->position.y = startpoint->position.y;
-
-  setpoint->velocity_body = true;  
-}
-
+/*
 static void dodgeObstacle(setpoint_t *setpoint, float velFront, float velSide, float cmdHeight){
   
   int turnDirection = 0;
@@ -249,11 +243,14 @@ static void dodgeObstacle(setpoint_t *setpoint, float velFront, float velSide, f
     vTaskDelay(M2T(1000));
   }
 }
-
+*/
 void appMain()
 {
   static setpoint_t setpoint;
-  static setpoint_t startpoint;
+  //static setpoint_t startpoint;
+  state = idle;
+  static float startPosX = 0.0f;
+  static float startPosY = 0.0f;
 
   DEBUG_PRINT("Waiting for activation ...\n");
   vTaskDelay(M2T(3000));
@@ -268,6 +265,10 @@ void appMain()
   logVarId_t idBack = logGetVarId("range", "back");
   logVarId_t idUp = logGetVarId("range", "up");
   logVarId_t bat = logGetVarId("pm", "vbat");
+
+  logVarId_t idPosX = logGetVarId("stateEstimate", "x");
+  logVarId_t idPosY = logGetVarId("stateEstimate", "y");
+  
   float vbat = logGetUint(bat);
 
   float factor = velMax/radius;
@@ -301,8 +302,11 @@ void appMain()
       setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
+
       // We read the current position as the start position of the drone
-      commanderGetSetpoint(&startpoint, 3);
+      startPosX = logGetFloat(idPosX);
+      startPosY = logGetFloat(idPosY);
+
       state = exploring;
     } else if (state == idle) {
         memset(&setpoint, 0, sizeof(setpoint_t));
@@ -403,7 +407,7 @@ void appMain()
         int turnDirection = 0;
         turnDirection = rand()%2;
         float randomNumber = (float)rand()/(float)(RAND_MAX/150.0f);
-        float yawrateComp = 0.0;
+        float yawrateComp = 0.0f;
 
         if (turnDirection==1){
           yawrateComp= randomNumber + 30.0f;
@@ -420,20 +424,25 @@ void appMain()
       }
       if ( (front_o ) == 0 ){
         yawrateComp= 0;
-        velFront = 0.2f;
+        velFront = 0.1f;
       }
-      setReturnToBaseSetpoint(&setpoint, &startpoint);
-      commanderSetSetpoint(&setpoint, 3);
-      vTaskDelay(M2T(20));
+      // We get the current position
+      float currentPosX = logGetFloat(idPosX);
+      float currentPosY = logGetFloat(idPosY);
 
-      setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
+      float baseVectorX = (startPosX - currentPosX);
+      float baseVectorY = (startPosY - currentPosY);
+      float vectorLength = sqrt( pow(baseVectorX,2) + pow(baseVectorY,2) );
+      velFront = baseVectorX / vectorLength * 0.1f;
+      velSide = baseVectorY / vectorLength * 0.1f;
+
+      setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, 0);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
-      commanderGetSetpoint(&setpoint, 3);
-      vTaskDelay(M2T(10));
+
       // If we arrive less than 1m from the base we have reached our destination and can land safely
       // We use the Euclidean distance 
-      float distanceToBase = sqrt(pow( (&setpoint.position.x - &startpoint.position.x),2 ) + pow( (&setpoint.position.x - &startpoint.position.x), 2));
+      float distanceToBase = sqrt(pow( (currentPosX - startPosX),2 ) + pow( (currentPosY - startPosY), 2));
       if (distanceToBase < 1.0f){
         memset(&setpoint, 0, sizeof(setpoint_t));
         commanderSetSetpoint(&setpoint, 3);
