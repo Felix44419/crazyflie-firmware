@@ -249,8 +249,8 @@ void appMain()
   static setpoint_t setpoint;
   //static setpoint_t startpoint;
   state = idle;
-  static float startPosX = 0.0f;
-  static float startPosY = 0.0f;
+  float startPosX = 0.0f;
+  float startPosY = 0.0f;
 
   DEBUG_PRINT("Waiting for activation ...\n");
   vTaskDelay(M2T(3000));
@@ -304,8 +304,8 @@ void appMain()
       vTaskDelay(M2T(10));
 
       // We read the current position as the start position of the drone
-      startPosX = logGetFloat(idPosX);
-      startPosY = logGetFloat(idPosY);
+      // startPosX = logGetFloat(idPosX);
+      // startPosY = logGetFloat(idPosY);
 
       state = exploring;
     } else if (state == idle) {
@@ -407,7 +407,7 @@ void appMain()
         int turnDirection = 0;
         turnDirection = rand()%2;
         float randomNumber = (float)rand()/(float)(RAND_MAX/150.0f);
-        float yawrateComp = 0.0f;
+        yawrateComp = 0.0f;
 
         if (turnDirection==1){
           yawrateComp= randomNumber + 30.0f;
@@ -430,11 +430,11 @@ void appMain()
       float currentPosX = logGetFloat(idPosX);
       float currentPosY = logGetFloat(idPosY);
 
-      float baseVectorX = (startPosX - currentPosX);
-      float baseVectorY = (startPosY - currentPosY);
-      float vectorLength = sqrt( pow(baseVectorX,2) + pow(baseVectorY,2) );
-      velFront = baseVectorX / vectorLength * 0.1f;
-      velSide = baseVectorY / vectorLength * 0.1f;
+      float directionX = currentPosX > startPosX ? -1 : 1;
+      float directionY = currentPosY > startPosY ? -1 : 1;
+
+      velFront = 0.1f  * directionX;
+      velSide = 0.1f  * directionY;
 
       setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, 0);
       commanderSetSetpoint(&setpoint, 3);
