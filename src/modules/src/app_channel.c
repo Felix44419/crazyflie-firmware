@@ -420,21 +420,23 @@ void appMain()
           commanderSetSetpoint(&setpoint, 3);
           vTaskDelay(M2T(1000));
         }
-        velFront = 0.0f;
+        velSide = 0;
+        velFront = 0;
       }
-      if ( (front_o ) == 0 ){
-        yawrateComp= 0;
-        velFront = 0.1f;
-      }
-      // We get the current position
       float currentPosX = logGetFloat(idPosX);
       float currentPosY = logGetFloat(idPosY);
 
       float directionX = currentPosX > startPosX ? -1 : 1;
       float directionY = currentPosY > startPosY ? -1 : 1;
 
-      velFront = 0.1f  * directionX;
-      velSide = 0.1f  * directionY;
+      if ( (front_o && back_o) == 0 ){
+        yawrateComp= 0;
+        velFront = 0.15f  * directionX;
+      }
+      // We get the current position
+      if ( abs(currentPosY - startPosY) > 0.1f && (left_o && right_o) == 0){
+        velSide = 0.15f  * directionY;
+      }
 
       setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, 0);
       commanderSetSetpoint(&setpoint, 3);
