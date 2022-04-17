@@ -294,10 +294,10 @@ void appMain()
     float vbat2 = logGetUint(bat);
 
     if( positioningInit && multirangerInit){}
-    /*if (state == exploring && vbat<3.77f){
+    if (state == exploring && vbat<3.77f){
       state = emergencyStop;
-    }*/
-    if (state == takeOff && positioningInit && multirangerInit /*&& vbat>3.77f*/) {
+    }
+    if (state == takeOff && positioningInit && multirangerInit && vbat>3.77f) {
       DEBUG_PRINT("Taking off\n");
       setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
       commanderSetSetpoint(&setpoint, 3);
@@ -335,11 +335,6 @@ void appMain()
       float velFront = b_comp + f_comp;
       float cmdHeight = height_sp - up_o / 1000.0f;
       float yawrateComp = 0.0f;
-      if (cmdHeight < height_sp - 0.2f)
-      {
-        state = emergencyStop;
-        DEBUG_PRINT("X\n");
-      }
       if ( (front_o ) != 0 ){
         int turnDirection = 0;
         turnDirection = rand()%2;
