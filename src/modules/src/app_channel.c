@@ -227,8 +227,6 @@ static void setHoverSetpoint(setpoint_t *setpoint, float x, float y, float z, fl
     setpoint->velocity.x = x;
     setpoint->velocity.y = y;
   }
-  
-
   setpoint->velocity_body = true;  
 }
 /*
@@ -276,7 +274,7 @@ void appMain()
 
   logVarId_t idPosX = logGetVarId("stateEstimate", "x");
   logVarId_t idPosY = logGetVarId("stateEstimate", "y");
-  logVarId_t idYaw = logGetVarId("stabilizer", "yaw");
+  //logVarId_t idYaw = logGetVarId("stabilizer", "yaw");
 
   float vbat = logGetUint(bat);
 
@@ -433,7 +431,7 @@ void appMain()
       // We get the current position
       float currentPosX = logGetFloat(idPosX);
       float currentPosY = logGetFloat(idPosY);
-      float currentYaw = logGetFloat(idYaw);
+      /*float currentYaw = logGetFloat(idYaw);
 
       // We want the dot product, yet the yawInit vector is just 1;0 therefore the dot product is the X component of the vectorR2B
       float vectorReturnToBaseX = startPosX - currentPosX; 
