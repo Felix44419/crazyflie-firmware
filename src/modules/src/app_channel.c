@@ -305,8 +305,8 @@ void appMain()
       vTaskDelay(M2T(10));
 
       // We read the current position as the start position of the drone
-      // startPosX = logGetFloat(idPosX);
-      // startPosY = logGetFloat(idPosY);
+      startPosX = logGetFloat(idPosX);
+      startPosY = logGetFloat(idPosY);
 
       state = exploring;
     } else if (state == idle) {
