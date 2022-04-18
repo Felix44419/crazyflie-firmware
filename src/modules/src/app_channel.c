@@ -268,7 +268,8 @@ void appMain()
 
   logVarId_t idPosX = logGetVarId("stateEstimate", "x");
   logVarId_t idPosY = logGetVarId("stateEstimate", "y");
-  
+  logVarId_t idYaw = logGetVarId("stabilizer", "yaw");
+
   float vbat = logGetUint(bat);
 
   float factor = velMax/radius;
@@ -294,11 +295,10 @@ void appMain()
     float vbat2 = logGetUint(bat);
 
     if( positioningInit && multirangerInit){}
-    /*if (state == exploring && vbat<3.77f){
-      state = emergencyStop;
-    }*/
+      if (state == exploring && vbat<3.77f){
+        state = emergencyStop;
+    }
     if (state == takeOff && positioningInit && multirangerInit /*&& vbat>3.77f*/) {
-      DEBUG_PRINT("Taking off\n");
       setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
@@ -338,7 +338,6 @@ void appMain()
       if (cmdHeight < height_sp - 0.2f)
       {
         state = emergencyStop;
-        DEBUG_PRINT("X\n");
       }
       if ( (front_o ) != 0 ){
         int turnDirection = 0;
@@ -386,13 +385,12 @@ void appMain()
       uint16_t right = logGetUint(idRight);
       uint16_t front = logGetUint(idFront);
       uint16_t back = logGetUint(idBack);
-      uint16_t up = logGetUint(idUp);
 
       uint16_t left_o = radius - MIN(left, radius);
       uint16_t right_o = radius - MIN(right, radius);
       uint16_t front_o = radius - MIN(front, radius);
       uint16_t back_o = radius - MIN(back, radius);
-      uint16_t up_o = radius - MIN(up, radius);
+
       float b_comp = back_o * factor;
       float l_comp = (-1) * left_o * factor;
       float r_comp = right_o * factor;
@@ -400,7 +398,7 @@ void appMain()
 
       float velSide = r_comp + l_comp;
       float velFront = b_comp + f_comp;
-      float cmdHeight = height_sp - up_o / 1000.0f;
+      float cmdHeight = height_sp;
       float yawrateComp = 0.0f;
 
       if ( (front_o ) != 0 ){
@@ -423,21 +421,30 @@ void appMain()
         velSide = 0;
         velFront = 0;
       }
+      // We get the current position
       float currentPosX = logGetFloat(idPosX);
       float currentPosY = logGetFloat(idPosY);
+      float currentYaw = logGetFloat(idYaw);
 
-      float directionX = currentPosX > startPosX ? -1 : 1;
-      float directionY = currentPosY > startPosY ? -1 : 1;
+      // We want the dot product, yet the yawInit vector is just 1;0 therefore the dot product is the X component of the vectorR2B
+      float vectorReturnToBaseX = startPosX - currentPosX; 
+      float vectorReturnToBaseY = startPosY - currentPosY;
+      // Vectors length
+      float lengthVectorR2B = sqrt(pow( vectorReturnToBaseX,2 ) + pow( vectorReturnToBaseY, 2));
+      // Extracting the angle from the dot product formula
+      float initAngleOffset = acos(vectorReturnToBaseX/lengthVectorR2B);
+      
+      yawrateComp = currentYaw + initAngleOffset;
+      if( yawrateComp > 5){
+        setHoverSetpoint(&setpoint, 0.0f, 0.0f, cmdHeight, yawrateComp);
+        commanderSetSetpoint(&setpoint, 3);
+        vTaskDelay(M2T(1000));
+      }
 
-      if ( (front_o && back_o) == 0 ){
+      if ( (front_o) == 0 ){
         yawrateComp= 0;
-        velFront = 0.15f  * directionX;
+        velFront = 0.15f;
       }
-      // We get the current position
-      if ( abs(currentPosY - startPosY) > 0.1f && (left_o && right_o) == 0){
-        velSide = 0.15f  * directionY;
-      }
-
       setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, 0);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
