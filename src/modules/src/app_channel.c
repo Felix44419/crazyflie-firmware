@@ -293,11 +293,12 @@ void appMain()
     DEBUG_PRINT("Position init value: %i", positioningInit);
     DEBUG_PRINT("Multiranger init value: %i", multirangerInit);
     float vbat2 = logGetUint(bat);
-
+/*
     if( positioningInit && multirangerInit){}
       if (state == exploring && vbat<3.77f){
         state = emergencyStop;
     }
+*/
     if (state == takeOff && positioningInit && multirangerInit /*&& vbat>3.77f*/) {
       setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
       commanderSetSetpoint(&setpoint, 3);
