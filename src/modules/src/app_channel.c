@@ -440,7 +440,6 @@ void appMain()
       float lengthVectorR2B = sqrt(pow( vectorReturnToBaseX,2 ) + pow( vectorReturnToBaseY, 2));
       // Extracting the angle from the dot product formula
       float initAngleOffset = acos(vectorReturnToBaseX/lengthVectorR2B);
-      /*
       yawrateComp = currentYaw + initAngleOffset;
       if( yawrateComp > 5){
         setHoverSetpoint(&setpoint, 0.0f, 0.0f, cmdHeight, yawrateComp);
