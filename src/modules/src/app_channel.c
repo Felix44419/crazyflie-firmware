@@ -208,7 +208,7 @@ void p2pcallbackHandler(P2PPacket *p)
 /*
   Methods and attributes of the drone flight control
   */
-static void setHoverSetpoint(setpoint_t *setpoint, float vx, float vy, float z, float yawrate)
+static void setHoverSetpoint(setpoint_t *setpoint, float x, float y, float z, float yawrate, bool returnToBase)
 {
   setpoint->mode.z = modeAbs;
   setpoint->position.z = z;
@@ -216,10 +216,18 @@ static void setHoverSetpoint(setpoint_t *setpoint, float vx, float vy, float z, 
   setpoint->mode.yaw = modeVelocity;
   setpoint->attitudeRate.yaw = yawrate;
 
-  setpoint->mode.x = modeVelocity;
-  setpoint->mode.y = modeVelocity;
-  setpoint->velocity.x = vx;
-  setpoint->velocity.y = vy;
+  if(returnToBase){
+    setpoint->mode.x = modeAbs;
+    setpoint->mode.y = modeAbs;
+    setpoint->position.x = x;
+    setpoint->position.y = y;
+  } else {
+    setpoint->mode.x = modeVelocity;
+    setpoint->mode.y = modeVelocity;
+    setpoint->velocity.x = x;
+    setpoint->velocity.y = y;
+  }
+  
 
   setpoint->velocity_body = true;  
 }
@@ -300,7 +308,7 @@ void appMain()
     }
 */
     if (state == takeOff && positioningInit && multirangerInit /*&& vbat>3.77f*/) {
-      setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
+      setHoverSetpoint(&setpoint, 0, 0, height_sp, 0, false);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
 
@@ -348,12 +356,12 @@ void appMain()
 
         if (turnDirection==1){
           yawrateComp= randomNumber + 30.0f;
-          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
+          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp, false);
           commanderSetSetpoint(&setpoint, 3);
           vTaskDelay(M2T(1000));
         } else {
           yawrateComp= -randomNumber + 30.0f;
-          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
+          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp, false);
           commanderSetSetpoint(&setpoint, 3);
           vTaskDelay(M2T(1000));
         }
@@ -364,7 +372,7 @@ void appMain()
         velFront = 0.2f;
       }
 
-      setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
+      setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp, false);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
       float vbat4 = logGetUint(bat);
@@ -410,12 +418,12 @@ void appMain()
 
         if (turnDirection==1){
           yawrateComp= randomNumber + 30.0f;
-          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
+          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp, false);
           commanderSetSetpoint(&setpoint, 3);
           vTaskDelay(M2T(1000));
         } else {
           yawrateComp= -randomNumber + 30.0f;
-          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
+          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp, false);
           commanderSetSetpoint(&setpoint, 3);
           vTaskDelay(M2T(1000));
         }
@@ -434,22 +442,24 @@ void appMain()
       float lengthVectorR2B = sqrt(pow( vectorReturnToBaseX,2 ) + pow( vectorReturnToBaseY, 2));
       // Extracting the angle from the dot product formula
       float initAngleOffset = acos(vectorReturnToBaseX/lengthVectorR2B);
-      
+      /*
       yawrateComp = currentYaw + initAngleOffset;
       if( yawrateComp > 5){
         setHoverSetpoint(&setpoint, 0.0f, 0.0f, cmdHeight, yawrateComp);
         commanderSetSetpoint(&setpoint, 3);
         vTaskDelay(M2T(1000));
       }
-
+*/
       if ( (front_o) == 0 ){
         yawrateComp= 0;
-        velFront = 0.15f;
-      }
-      setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, 0);
+        setHoverSetpoint(&setpoint, startPosX, startPosY, cmdHeight, 0, true);
+        commanderSetSetpoint(&setpoint, 3);
+        vTaskDelay(M2T(10));
+      }/*
+      setHoverSetpoint(&setpoint, startPosX, startPosY, cmdHeight, 0, true);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
-
+*/
       // If we arrive less than 1m from the base we have reached our destination and can land safely
       // We use the Euclidean distance 
       float distanceToBase = sqrt(pow( (currentPosX - startPosX),2 ) + pow( (currentPosY - startPosY), 2));
