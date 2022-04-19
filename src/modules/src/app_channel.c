@@ -276,12 +276,12 @@ void appMain()
   logVarId_t idPosY = logGetVarId("stateEstimate", "y");
   //logVarId_t idYaw = logGetVarId("stabilizer", "yaw");
 
-  float vbat = logGetUint(bat);
+  float vbat = logGetFloat(bat);
 
   float factor = velMax/radius;
   DEBUG_PRINT("Waiting for activation ...\n");
   while(1) {
-    float vbat1 = logGetUint(bat);
+    float vbat1 = logGetFloat(bat);
     // We continuously call this method to ensure the rxQueue does not overflow and to update our status
     if (appchannelReceiveDataPacket(&rxPacket, sizeof(rxPacket), 0)) {
       txPacket.replyCode = commandHandler(rxPacket.commandTag);
@@ -298,14 +298,14 @@ void appMain()
 
     DEBUG_PRINT("Position init value: %i", positioningInit);
     DEBUG_PRINT("Multiranger init value: %i", multirangerInit);
-    float vbat2 = logGetUint(bat);
-/*
+    float vbat2 = logGetFloat(bat);
+
     if( positioningInit && multirangerInit){}
       if (state == exploring && vbat<3.77f){
-        state = emergencyStop;
+        state = returnToBase;
     }
-*/
-    if (state == takeOff && positioningInit && multirangerInit /*&& vbat>3.77f*/) {
+
+    if (state == takeOff && positioningInit && multirangerInit && vbat>3.77f) {
       setHoverSetpoint(&setpoint, 0, 0, height_sp, 0, false);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
@@ -319,7 +319,7 @@ void appMain()
         memset(&setpoint, 0, sizeof(setpoint_t));
         commanderSetSetpoint(&setpoint, 3);
     }
-    float vbat3 = logGetUint(bat);
+    float vbat3 = logGetFloat(bat);
 
     if (state == exploring){
       uint16_t left = logGetUint(idLeft);
@@ -342,10 +342,7 @@ void appMain()
       float velFront = b_comp + f_comp;
       float cmdHeight = height_sp - up_o / 1000.0f;
       float yawrateComp = 0.0f;
-      if (cmdHeight < height_sp - 0.2f)
-      {
-        state = emergencyStop;
-      }
+
       if ( (front_o ) != 0 ){
         int turnDirection = 0;
         turnDirection = rand()%2;
@@ -373,7 +370,7 @@ void appMain()
       setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp, false);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
-      float vbat4 = logGetUint(bat);
+      float vbat4 = logGetFloat(bat);
       float vbat12 = MAX(vbat1,vbat2);
       float vbat23 = MAX(vbat12,vbat3);
       float vbat34 = MAX(vbat23,vbat4);
@@ -440,7 +437,7 @@ void appMain()
       float lengthVectorR2B = sqrt(pow( vectorReturnToBaseX,2 ) + pow( vectorReturnToBaseY, 2));
       // Extracting the angle from the dot product formula
       float initAngleOffset = acos(vectorReturnToBaseX/lengthVectorR2B);
-      /*
+      
       yawrateComp = currentYaw + initAngleOffset;
       if( yawrateComp > 5){
         setHoverSetpoint(&setpoint, 0.0f, 0.0f, cmdHeight, yawrateComp);
