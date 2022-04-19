@@ -472,6 +472,6 @@ void appMain()
     }
   }
 }
-PARAM_GROUP_START(app)
-PARAM_ADD(PARAM_UINT8, state, &state)
-PARAM_GROUP_STOP(app)
+LOG_GROUP_START(app)
+LOG_ADD(PARAM_UINT8, state, &state)
+LOG_GROUP_STOP(app)
