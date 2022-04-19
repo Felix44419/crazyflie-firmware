@@ -186,6 +186,9 @@ int commandHandler(int commandTag){
       }
       if (commandTag == 04){
         // We stop the mission
+        ledseqRun(&seq_testPassed);
+        vTaskDelay(M2T(2000));
+        ledseqStop(&seq_testPassed);
         state = returnToBase;
 
         replyCode = 0104;
@@ -208,14 +211,18 @@ void p2pcallbackHandler(P2PPacket *p)
 /*
   Methods and attributes of the drone flight control
   */
-static void setHoverSetpoint(setpoint_t *setpoint, float x, float y, float z, float yawrate, bool returnToBase)
+static void setHoverSetpoint(setpoint_t *setpoint, float x, float y, float z, float yawrate)
 {
   setpoint->mode.z = modeAbs;
   setpoint->position.z = z;
 
   setpoint->mode.yaw = modeVelocity;
   setpoint->attitudeRate.yaw = yawrate;
-
+  setpoint->mode.x = modeVelocity;
+  setpoint->mode.y = modeVelocity;
+  setpoint->velocity.x = x;
+  setpoint->velocity.y = y;
+    /*
   if(returnToBase){
     setpoint->mode.x = modeAbs;
     setpoint->mode.y = modeAbs;
@@ -226,7 +233,7 @@ static void setHoverSetpoint(setpoint_t *setpoint, float x, float y, float z, fl
     setpoint->mode.y = modeVelocity;
     setpoint->velocity.x = x;
     setpoint->velocity.y = y;
-  }
+  }*/
   setpoint->velocity_body = true;  
 }
 /*
@@ -269,12 +276,12 @@ void appMain()
   logVarId_t idRight = logGetVarId("range", "right");
   logVarId_t idFront = logGetVarId("range", "front");
   logVarId_t idBack = logGetVarId("range", "back");
-  logVarId_t idUp = logGetVarId("range", "up");
+  //logVarId_t idUp = logGetVarId("range", "up");
   logVarId_t bat = logGetVarId("pm", "vbat");
 
   logVarId_t idPosX = logGetVarId("stateEstimate", "x");
   logVarId_t idPosY = logGetVarId("stateEstimate", "y");
-  //logVarId_t idYaw = logGetVarId("stabilizer", "yaw");
+  logVarId_t idYaw = logGetVarId("stabilizer", "yaw");
 
   float vbat = logGetUint(bat);
 
@@ -306,7 +313,7 @@ void appMain()
     }
 */
     if (state == takeOff && positioningInit && multirangerInit /*&& vbat>3.77f*/) {
-      setHoverSetpoint(&setpoint, 0, 0, height_sp, 0, false);
+      setHoverSetpoint(&setpoint, 0, 0, height_sp, 0);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
 
@@ -326,13 +333,13 @@ void appMain()
       uint16_t right = logGetUint(idRight);
       uint16_t front = logGetUint(idFront);
       uint16_t back = logGetUint(idBack);
-      uint16_t up = logGetUint(idUp);
+      //uint16_t up = logGetUint(idUp);
 
       uint16_t left_o = radius - MIN(left, radius);
       uint16_t right_o = radius - MIN(right, radius);
       uint16_t front_o = radius - MIN(front, radius);
       uint16_t back_o = radius - MIN(back, radius);
-      uint16_t up_o = radius - MIN(up, radius);
+      //uint16_t up_o = radius - MIN(up, radius);
       float b_comp = back_o * factor;
       float l_comp = (-1) * left_o * factor;
       float r_comp = right_o * factor;
@@ -340,12 +347,12 @@ void appMain()
 
       float velSide = r_comp + l_comp;
       float velFront = b_comp + f_comp;
-      float cmdHeight = height_sp - up_o / 1000.0f;
+      float cmdHeight = height_sp /*- up_o / 1000.0f*/;
       float yawrateComp = 0.0f;
-      if (cmdHeight < height_sp - 0.2f)
+      /*if (cmdHeight < height_sp - 0.2f)
       {
         state = emergencyStop;
-      }
+      }*/
       if ( (front_o ) != 0 ){
         int turnDirection = 0;
         turnDirection = rand()%2;
@@ -354,12 +361,12 @@ void appMain()
 
         if (turnDirection==1){
           yawrateComp= randomNumber + 30.0f;
-          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp, false);
+          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
           commanderSetSetpoint(&setpoint, 3);
           vTaskDelay(M2T(1000));
         } else {
           yawrateComp= -randomNumber + 30.0f;
-          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp, false);
+          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
           commanderSetSetpoint(&setpoint, 3);
           vTaskDelay(M2T(1000));
         }
@@ -370,7 +377,7 @@ void appMain()
         velFront = 0.2f;
       }
 
-      setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp, false);
+      setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
       commanderSetSetpoint(&setpoint, 3);
       vTaskDelay(M2T(10));
       float vbat4 = logGetUint(bat);
@@ -416,12 +423,12 @@ void appMain()
 
         if (turnDirection==1){
           yawrateComp= randomNumber + 30.0f;
-          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp, false);
+          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
           commanderSetSetpoint(&setpoint, 3);
           vTaskDelay(M2T(1000));
         } else {
           yawrateComp= -randomNumber + 30.0f;
-          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp, false);
+          setHoverSetpoint(&setpoint, velFront, velSide, cmdHeight, yawrateComp);
           commanderSetSetpoint(&setpoint, 3);
           vTaskDelay(M2T(1000));
         }
@@ -431,7 +438,7 @@ void appMain()
       // We get the current position
       float currentPosX = logGetFloat(idPosX);
       float currentPosY = logGetFloat(idPosY);
-      /*float currentYaw = logGetFloat(idYaw);
+      float currentYaw = logGetFloat(idYaw);
 
       // We want the dot product, yet the yawInit vector is just 1;0 therefore the dot product is the X component of the vectorR2B
       float vectorReturnToBaseX = startPosX - currentPosX; 
@@ -439,17 +446,17 @@ void appMain()
       // Vectors length
       float lengthVectorR2B = sqrt(pow( vectorReturnToBaseX,2 ) + pow( vectorReturnToBaseY, 2));
       // Extracting the angle from the dot product formula
-      float initAngleOffset = acos(vectorReturnToBaseX/lengthVectorR2B);
-      yawrateComp = currentYaw + initAngleOffset;
-      if( yawrateComp > 5){
+      float initAngleOffset = acos(vectorReturnToBaseX/lengthVectorR2B)*180/3.1416;
+      yawrateComp = -(currentYaw + initAngleOffset);
+      if( abs(yawrateComp) > 25){
         setHoverSetpoint(&setpoint, 0.0f, 0.0f, cmdHeight, yawrateComp);
         commanderSetSetpoint(&setpoint, 3);
         vTaskDelay(M2T(1000));
       }
-*/
+
       if ( (front_o) == 0 ){
         yawrateComp= 0;
-        setHoverSetpoint(&setpoint, startPosX, startPosY, cmdHeight, 0, true);
+        setHoverSetpoint(&setpoint, startPosX, startPosY, cmdHeight, 0);
         commanderSetSetpoint(&setpoint, 3);
         vTaskDelay(M2T(10));
       }/*
@@ -460,9 +467,10 @@ void appMain()
       // If we arrive less than 1m from the base we have reached our destination and can land safely
       // We use the Euclidean distance 
       float distanceToBase = sqrt(pow( (currentPosX - startPosX),2 ) + pow( (currentPosY - startPosY), 2));
-      if (distanceToBase < 1.0f){
+      if (distanceToBase < 0.25f){
         memset(&setpoint, 0, sizeof(setpoint_t));
         commanderSetSetpoint(&setpoint, 3);
+        ledseqStop(&seq_testPassed);
         state=idle;
       }
     }
