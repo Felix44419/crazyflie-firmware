@@ -267,6 +267,12 @@ void appMain()
 
   DEBUG_PRINT("Waiting for activation ...\n");
   vTaskDelay(M2T(3000));
+  ledseqEnable(true);
+  ledseqRun(&seq_testPassed);
+  vTaskDelay(M2T(1000));
+  ledseqStop(&seq_testPassed);
+  ledseqEnable(false);
+
   struct packetRX rxPacket;
   struct packetTX txPacket;
   paramVarId_t idPositioningDeck = paramGetVarId("deck", "bcFlow2");
